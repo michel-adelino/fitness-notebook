@@ -169,7 +169,7 @@ export function BuilderLayout() {
                 fixed lg:absolute
                 top-0 right-0
                 h-full
-                w-[480px]
+                w-[640px]
                 bg-white
                 border-l border-gray-200
                 flex flex-col
@@ -179,14 +179,19 @@ export function BuilderLayout() {
                 transition-transform duration-300 ease-in-out
                 ${isRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
               `}
+              onClick={(e) => e.stopPropagation()}
             >
               {/* Panel Header with Close Button */}
               <div className="sticky top-0 bg-gradient-to-r from-white to-gray-50 border-b border-gray-200 shadow-sm px-4 py-3 flex items-center justify-between z-10">
                 <h2 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">Customization</h2>
                 <button
-                  onClick={() => setIsRightPanelOpen(false)}
-                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:shadow-sm active:opacity-70"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsRightPanelOpen(false);
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:shadow-sm active:opacity-70 cursor-pointer"
                   aria-label="Close panel"
+                  type="button"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -205,7 +210,7 @@ export function BuilderLayout() {
             {/* Overlay when panel is open */}
             {isRightPanelOpen && (
               <div
-                className="fixed inset-0 bg-black bg-opacity-30 z-30 lg:bg-opacity-0 lg:pointer-events-none"
+                className="fixed inset-0 bg-black bg-opacity-20 z-30"
                 onClick={() => setIsRightPanelOpen(false)}
                 aria-hidden="true"
               />

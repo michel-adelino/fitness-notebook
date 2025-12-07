@@ -54,6 +54,7 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // Create canvas - let html2canvas determine dimensions automatically
+    // Using 'any' type to bypass TypeScript type issues with html2canvas options
     const canvas = await html2canvas(previewElement, {
       scale: 2,
       useCORS: true,
@@ -61,7 +62,7 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
       backgroundColor: '#ffffff',
       allowTaint: true,
       removeContainer: false,
-      onclone: (clonedDoc) => {
+      onclone: (clonedDoc: Document) => {
         // Fix font rendering and text positioning in cloned document
         const style = clonedDoc.createElement('style');
         style.textContent = `
@@ -96,7 +97,7 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
           }
         });
       },
-    });
+    } as any);
 
     // Restore original styles
     previewElement.style.display = originalDisplay;

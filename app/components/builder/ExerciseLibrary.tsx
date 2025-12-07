@@ -5,11 +5,18 @@ import { useDraggable } from '@dnd-kit/core';
 import { Exercise } from '@/app/lib/types';
 import { defaultExercises, exerciseCategories } from '@/app/lib/exercises';
 import { useBuilder } from '@/app/context/BuilderContext';
-import { Plus } from 'lucide-react';
+import { Plus, Info } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ExerciseDetailModal } from './ExerciseDetailModal';
 
-function DraggableExercise({ exercise }: { exercise: Exercise }) {
+function DraggableExercise({ 
+  exercise, 
+  onInfoClick 
+}: { 
+  exercise: Exercise;
+  onInfoClick: (exercise: Exercise) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: exercise.id,
     data: { exercise },
@@ -25,20 +32,53 @@ function DraggableExercise({ exercise }: { exercise: Exercise }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`bg-white border-2 border-gray-200 rounded-xl p-3.5 mb-2.5 cursor-move hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/20 hover:bg-blue-50/50 transition-all duration-200 ${
+      className={`bg-white border-2 border-gray-200 rounded-xl p-3.5 mb-2.5 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/20 hover:bg-blue-50/50 transition-all duration-200 w-full max-w-full ${
         isDragging ? 'opacity-50 border-blue-500 shadow-xl' : ''
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="font-semibold text-gray-900">{exercise.name}</h4>
-          <p className="text-xs text-gray-500 capitalize mt-0.5">{exercise.category}</p>
+      <div className="flex items-center justify-between gap-3 min-w-0">
+        <div 
+          className="flex-1 cursor-pointer min-w-0"
+          onClick={() => onInfoClick(exercise)}
+        >
+          <h4 className="font-semibold text-gray-900 hover:text-blue-600 transition-colors truncate">{exercise.name}</h4>
+          <p className="text-xs text-gray-500 capitalize mt-0.5 truncate">{exercise.category}</p>
         </div>
-        <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg font-medium">
-          {exercise.defaultSets || 0} sets
-        </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg font-medium">
+            {exercise.defaultSets || 0} sets
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onInfoClick(exercise);
+            }}
+            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            aria-label="View exercise details"
+            type="button"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+          <div
+            {...attributes}
+            {...listeners}
+            className="p-2 cursor-grab active:cursor-grabbing hover:bg-blue-100 rounded-lg transition-all duration-200 group flex items-center justify-center"
+            aria-label="Drag exercise"
+            onClick={(e) => e.stopPropagation()}
+            title="Drag to canvas"
+          >
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+              </div>
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -49,7 +89,18 @@ export function ExerciseLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customExercise, setCustomExercise] = useState({ name: '', category: 'custom' as const });
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { addExercise } = useBuilder();
+
+  const handleExerciseClick = (exercise: Exercise) => {
+    setSelectedExercise(exercise);
+    setIsModalOpen(true);
+  };
+
+  const handleAddToWorkout = (exercise: Exercise) => {
+    addExercise(exercise);
+  };
 
   const filteredExercises = defaultExercises.filter((exercise) => {
     const matchesCategory = selectedCategory === 'all' || exercise.category === selectedCategory;
@@ -73,8 +124,8 @@ export function ExerciseLibrary() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white border-r border-gray-200">
-      <div className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+    <div className="h-full flex flex-col bg-gradient-to-b from-gray-50 to-white border-r border-gray-200 overflow-hidden">
+      <div className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm overflow-x-hidden">
         <h2 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent mb-3">Exercise Library</h2>
         
         <Input
@@ -142,15 +193,27 @@ export function ExerciseLibrary() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
         {filteredExercises.length === 0 ? (
           <p className="text-center text-gray-500 text-sm mt-8">No exercises found</p>
         ) : (
           filteredExercises.map((exercise) => (
-            <DraggableExercise key={exercise.id} exercise={exercise} />
+            <DraggableExercise 
+              key={exercise.id} 
+              exercise={exercise}
+              onInfoClick={handleExerciseClick}
+            />
           ))
         )}
       </div>
+
+      {/* Exercise Detail Modal */}
+      <ExerciseDetailModal
+        exercise={selectedExercise}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddToWorkout={handleAddToWorkout}
+      />
     </div>
   );
 }

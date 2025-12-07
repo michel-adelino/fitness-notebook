@@ -9,45 +9,59 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
     const pageWidth = mmToPoints(notebookPage.pageSize.width);
     const pageHeight = mmToPoints(notebookPage.pageSize.height);
 
-    // Ensure element is visible and properly positioned
-    const originalDisplay = previewElement.style.display;
-    const originalVisibility = previewElement.style.visibility;
-    const originalOpacity = previewElement.style.opacity;
-    const originalTransform = previewElement.style.transform;
-    const originalPosition = previewElement.style.position;
+    // Store original styles to restore later
+    const originalStyles = {
+      display: previewElement.style.display,
+      visibility: previewElement.style.visibility,
+      opacity: previewElement.style.opacity,
+      transform: previewElement.style.transform,
+      position: previewElement.style.position,
+      left: previewElement.style.left,
+      top: previewElement.style.top,
+      zIndex: previewElement.style.zIndex,
+    };
     
-    previewElement.style.display = 'block';
-    previewElement.style.visibility = 'visible';
-    previewElement.style.opacity = '1';
-    previewElement.style.transform = 'none';
-    previewElement.style.position = 'relative';
+    // Temporarily modify styles for capture (minimal changes)
+    previewElement.style.display = previewElement.style.display || 'block';
+    previewElement.style.visibility = previewElement.style.visibility || 'visible';
+    previewElement.style.opacity = previewElement.style.opacity || '1';
     
-    // Ensure no parent transforms affect positioning
+    // Store parent transform states to restore later
+    const parentTransforms: Array<{ element: HTMLElement; originalTransform: string }> = [];
     let parent = previewElement.parentElement;
     while (parent && parent !== document.body) {
-      if (getComputedStyle(parent).transform !== 'none') {
-        const originalParentTransform = parent.style.transform;
+      const computedStyle = getComputedStyle(parent);
+      if (computedStyle.transform && computedStyle.transform !== 'none') {
+        parentTransforms.push({
+          element: parent,
+          originalTransform: parent.style.transform,
+        });
         parent.style.transform = 'none';
-        // Restore after capture
-        setTimeout(() => {
-          parent!.style.transform = originalParentTransform;
-        }, 1000);
       }
       parent = parent.parentElement;
     }
 
-    // Scroll element into view and to top
-    previewElement.scrollIntoView({ behavior: 'instant', block: 'start' });
-    
-    // Scroll all parent containers to top
+    // Store scroll positions to restore later
+    const scrollPositions: Array<{ element: HTMLElement; scrollTop: number }> = [];
     let currentParent: HTMLElement | null = previewElement.parentElement;
     while (currentParent) {
-      if (currentParent.scrollTop !== undefined) {
+      if (currentParent.scrollTop !== undefined && currentParent.scrollTop !== 0) {
+        scrollPositions.push({
+          element: currentParent,
+          scrollTop: currentParent.scrollTop,
+        });
         currentParent.scrollTop = 0;
       }
       currentParent = currentParent.parentElement;
     }
-    previewElement.scrollTop = 0;
+    if (previewElement.scrollTop !== 0) {
+      const originalScrollTop = previewElement.scrollTop;
+      previewElement.scrollTop = 0;
+      scrollPositions.push({
+        element: previewElement,
+        scrollTop: originalScrollTop,
+      });
+    }
 
     // Wait for fonts to load and rendering to complete
     await document.fonts.ready;
@@ -61,7 +75,7 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
       logging: false,
       backgroundColor: '#ffffff',
       allowTaint: true,
-      removeContainer: false,
+      removeContainer: true,
       onclone: (clonedDoc: Document) => {
         // Fix font rendering and text positioning in cloned document
         const style = clonedDoc.createElement('style');
@@ -99,12 +113,18 @@ export async function generatePDF(previewElement: HTMLElement, notebookPage: Not
       },
     } as any);
 
-    // Restore original styles
-    previewElement.style.display = originalDisplay;
-    previewElement.style.visibility = originalVisibility;
-    previewElement.style.opacity = originalOpacity;
-    previewElement.style.transform = originalTransform;
-    previewElement.style.position = originalPosition;
+    // Restore original styles immediately
+    Object.assign(previewElement.style, originalStyles);
+    
+    // Restore parent transforms
+    parentTransforms.forEach(({ element, originalTransform }) => {
+      element.style.transform = originalTransform;
+    });
+    
+    // Restore scroll positions
+    scrollPositions.forEach(({ element, scrollTop }) => {
+      element.scrollTop = scrollTop;
+    });
 
     console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
 

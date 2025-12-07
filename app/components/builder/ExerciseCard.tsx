@@ -3,7 +3,7 @@
 import React from 'react';
 import { ExerciseOnPage } from '@/app/lib/types';
 import { useBuilder } from '@/app/context/BuilderContext';
-import { GripVertical, X } from 'lucide-react';
+import { Move, X } from 'lucide-react';
 import { Input } from '../ui/Input';
 
 interface ExerciseCardProps {
@@ -24,8 +24,21 @@ export function ExerciseCard({ exercise, index, isDragging, dragHandleProps }: E
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-1">
-          <div {...(dragHandleProps || {})} className="cursor-move hover:text-blue-600 transition-colors">
-            <GripVertical className="w-5 h-5 text-gray-400" />
+          <div 
+            {...(dragHandleProps || {})} 
+            className="cursor-grab active:cursor-grabbing p-2 -ml-2 -mt-1 hover:bg-blue-100 rounded-lg transition-all duration-200 group flex items-center justify-center"
+            title="Drag to reorder"
+          >
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+              </div>
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-600 transition-colors"></div>
+              </div>
+            </div>
           </div>
           <h3 className="font-semibold text-gray-900">{exercise.name}</h3>
           <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg font-medium">

@@ -104,6 +104,7 @@ export function BuilderProvider({ children }: { children: ReactNode }) {
   const addExercise = useCallback((exercise: Exercise) => {
     const exerciseOnPage: ExerciseOnPage = {
       ...exercise,
+      id: `${exercise.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID for each instance
       sets: exercise.defaultSets || 3,
       reps: exercise.defaultReps || 10,
       weight: exercise.defaultWeight || 0,

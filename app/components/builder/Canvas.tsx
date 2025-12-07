@@ -23,9 +23,10 @@ export function Canvas() {
 
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-0 bg-white rounded-xl border-2 border-dashed p-6 overflow-y-auto transition-all duration-300 ${
+        className={`flex-1 min-h-0 bg-white rounded-xl border-2 border-dashed p-6 overflow-y-auto transition-all duration-300 min-h-[400px] w-full ${
           isOver ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-lg shadow-blue-500/20' : 'border-gray-300 hover:border-gray-400'
         }`}
+        style={{ position: 'relative' }}
       >
         {exercises.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
@@ -36,15 +37,23 @@ export function Canvas() {
             <p className="text-gray-500 text-sm">Or select exercises from the library</p>
           </div>
         ) : (
-          <SortableContext items={exercises.map((ex) => ex.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {exercises
-                .sort((a, b) => a.order - b.order)
-                .map((exercise, index) => (
-                  <SortableExerciseCard key={exercise.id} exercise={exercise} index={index} />
-                ))}
-            </div>
-          </SortableContext>
+          <>
+            <SortableContext items={exercises.map((ex) => ex.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3">
+                {exercises
+                  .sort((a, b) => a.order - b.order)
+                  .map((exercise, index) => (
+                    <SortableExerciseCard key={exercise.id} exercise={exercise} index={index} />
+                  ))}
+              </div>
+            </SortableContext>
+            {/* Drop zone indicator when dragging over canvas with exercises */}
+            {isOver && (
+              <div className="mt-3 p-4 border-2 border-dashed border-blue-400 bg-blue-50/50 rounded-xl text-center">
+                <p className="text-blue-600 font-medium">Drop here to add exercise</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

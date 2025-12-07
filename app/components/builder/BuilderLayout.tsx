@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragOverlay, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { Canvas } from './Canvas';
@@ -11,6 +11,7 @@ import { PersonalizationPanel } from './PersonalizationPanel';
 import { PreviewPanel } from './PreviewPanel';
 import { useBuilder } from '@/app/context/BuilderContext';
 import { Exercise, ExerciseOnPage } from '@/app/lib/types';
+import { defaultExercises } from '@/app/lib/exercises';
 import { generatePDF } from '@/app/lib/pdf-generator';
 import { Button } from '../ui/Button';
 import { FileDown, ShoppingCart, ChevronLeft, ChevronRight, Palette, User, Eye } from 'lucide-react';
@@ -30,7 +31,11 @@ export function BuilderLayout() {
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -38,10 +43,15 @@ export function BuilderLayout() {
 
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
+    // Prevent body scroll during drag to avoid screen shifting
+    document.body.style.overflow = 'hidden';
   };
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
+
+    // Restore body scroll first
+    document.body.style.overflow = '';
 
     if (!over) {
       setActiveId(null);
@@ -49,21 +59,29 @@ export function BuilderLayout() {
     }
 
     // Handle dropping exercise from library to canvas
-    if (active.data.current?.exercise && over.id === 'canvas') {
-      const exercise = active.data.current.exercise as Exercise;
-      addExercise(exercise);
-      setActiveId(null);
-      return;
+    // Check if we're dropping a new exercise (from library) onto canvas or any exercise card
+    if (active.data.current?.exercise) {
+      // If dropping on canvas directly, or on an existing exercise card (which means add to canvas)
+      if (over.id === 'canvas' || exercises.some((ex) => ex.id === over.id)) {
+        const exercise = active.data.current.exercise as Exercise;
+        addExercise(exercise);
+        setActiveId(null);
+        return;
+      }
     }
 
-    // Handle reordering exercises on canvas
-    if (active.id !== over.id && exercises.some((ex) => ex.id === active.id)) {
+    // Handle reordering exercises on canvas (only if both are existing exercises)
+    if (active.id !== over.id && 
+        exercises.some((ex) => ex.id === active.id) && 
+        exercises.some((ex) => ex.id === over.id)) {
       const oldIndex = exercises.findIndex((ex) => ex.id === active.id);
       const newIndex = exercises.findIndex((ex) => ex.id === over.id);
       reorderExercises(oldIndex, newIndex);
     }
 
     setActiveId(null);
+    // Restore body scroll
+    document.body.style.overflow = '';
   };
 
   const handleGeneratePDF = async () => {
@@ -83,9 +101,11 @@ export function BuilderLayout() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      autoScroll={false}
+      modifiers={[]}
     >
       <div className="h-screen flex flex-col">
         {/* Header */}
@@ -115,7 +135,7 @@ export function BuilderLayout() {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Left Sidebar - Exercise Library */}
-          <div className="w-full lg:w-80 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200">
+          <div className="w-full lg:w-80 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200 overflow-hidden">
             <ExerciseLibrary />
           </div>
 
@@ -219,10 +239,24 @@ export function BuilderLayout() {
         </div>
       </div>
 
-      <DragOverlay>
+      <DragOverlay
+        style={{
+          cursor: 'grabbing',
+        }}
+        dropAnimation={null}
+      >
         {activeId ? (
-          <div className="bg-white border-2 border-blue-500 rounded-xl p-4 shadow-2xl opacity-95 backdrop-blur-sm">
-            <div className="font-semibold text-gray-900">{exercises.find((ex) => ex.id === activeId)?.name || 'Exercise'}</div>
+          <div 
+            className="bg-white border-2 border-blue-500 rounded-xl p-4 shadow-2xl opacity-95 backdrop-blur-sm pointer-events-none"
+            style={{
+              transform: 'rotate(2deg)',
+            }}
+          >
+            <div className="font-semibold text-gray-900">
+              {exercises.find((ex) => ex.id === activeId)?.name || 
+               (typeof activeId === 'string' && !activeId.startsWith('custom-') ? 
+                defaultExercises.find((ex) => ex.id === activeId)?.name || 'Exercise' : 'Exercise')}
+            </div>
           </div>
         ) : null}
       </DragOverlay>
